@@ -58,7 +58,7 @@ public class GameUI extends JFrame {
         add(boardPanel, BorderLayout.CENTER);
         add(diceResultLabel, BorderLayout.NORTH);
         add(rollButton, BorderLayout.EAST);
-
+        
         boardPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -95,11 +95,11 @@ public class GameUI extends JFrame {
             }
 
         }
-
+        //player 
         g.setColor(Color.GREEN);
         g.fillOval(player.getY() * tileSize + 5, player.getX() * tileSize + 5, tileSize - 10, tileSize - 10);
         drawDirectionIndicator(g, player.getDirection(), player.getX(), player.getY(), tileSize);
-
+        //enemy
         g.setColor(Color.WHITE);
         g.fillOval(enemy.getY() * tileSize + 5, enemy.getX() * tileSize + 5, tileSize - 10, tileSize - 10);
         drawDirectionIndicator(g, enemy.getDirection(), enemy.getX(), enemy.getY(), tileSize);
@@ -126,12 +126,13 @@ public class GameUI extends JFrame {
         }
 
     }
-
+    
+    /*this move still have problem*/
     private void moveCharacter(Character character, int newX, int newY) {
-        int dx = newX - character.getX(); // ความแตกต่างในแนวตั้ง
-        int dy = newY - character.getY(); // ความแตกต่างในแนวนอน
+        int dx = newX - character.getX(); 
+        int dy = newY - character.getY(); 
 
-        // ตรวจสอบการเคลื่อนที่ในแนวตั้งและแนวนอน
+       
         if (remainingMoves > 0 && ((Math.abs(dx) + Math.abs(dy)) == 1)) {
             if (newX >= 0 && newX < board.getSize() && newY >= 0 && newY < board.getSize()) {
                 if (!board.getTile(newX, newY).isLava()) {
@@ -167,6 +168,8 @@ public class GameUI extends JFrame {
             System.out.println("Invalid move! Remaining moves: " + remainingMoves);
         }
     }
+
+    
 
     private int rollDice() {
         return dice.nextInt(6) + 1;
