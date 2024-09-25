@@ -26,6 +26,7 @@ public class GameUI extends JFrame {
     private boolean isPlayerTurn = true;
     private int diceValue;
     private int remainingMoves;
+    private JLabel turnIndicatorLabel;
 
     public GameUI() {
 
@@ -40,7 +41,8 @@ public class GameUI extends JFrame {
         setSize(400, 400);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new BorderLayout());
-
+        turnIndicatorLabel = new JLabel("Player's Turn", SwingConstants.CENTER);
+        add(turnIndicatorLabel, BorderLayout.SOUTH);
         JButton rollButton = new JButton("Roll Dice");
         rollButton.addActionListener(new MoveAction());
 
@@ -58,7 +60,7 @@ public class GameUI extends JFrame {
         add(boardPanel, BorderLayout.CENTER);
         add(diceResultLabel, BorderLayout.NORTH);
         add(rollButton, BorderLayout.EAST);
-        
+
         boardPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
@@ -66,18 +68,24 @@ public class GameUI extends JFrame {
                 int x = e.getY() / tileSize;
                 int y = e.getX() / tileSize;
 
-                if (isPlayerTurn) {
-                    moveCharacter(player, x, y);
-                } else {
-                    moveCharacter(enemy, x, y);
+                if (remainingMoves > 0) { // ตรวจสอบว่า remainingMoves มากกว่า 0 ก่อน
+                    if (isPlayerTurn) {
+                        moveCharacter(player, x, y);
+                    } else {
+                        moveCharacter(enemy, x, y);
+                    }
                 }
-
+                else{
+                    System.out.println("no move remain");
+                }
                 if (remainingMoves == 0) {
-                    isPlayerTurn = !isPlayerTurn;
+                    
+                    updateTurnIndicator();
                 }
                 boardPanel.repaint();
             }
         });
+        
     }
 
     private void drawBoard(Graphics g) {
@@ -126,27 +134,26 @@ public class GameUI extends JFrame {
         }
 
     }
-    
+
     /*this move still have problem*/
     private void moveCharacter(Character character, int newX, int newY) {
-        int dx = newX - character.getX(); 
-        int dy = newY - character.getY(); 
+        int dx = newX - character.getX();
+        int dy = newY - character.getY();
 
-       
         if (remainingMoves > 0 && ((Math.abs(dx) + Math.abs(dy)) == 1)) {
             if (newX >= 0 && newX < board.getSize() && newY >= 0 && newY < board.getSize()) {
                 if (!board.getTile(newX, newY).isLava()) {
                     character.setX(newX);
                     character.setY(newY);
-                    remainingMoves--; 
+                    remainingMoves--;
                 } else {
                     System.out.println("Character cannot move into lava!");
                 }
             }
         } else if (remainingMoves > 0 && Math.abs(dx) + Math.abs(dy) <= remainingMoves) {
-            
-            int stepX = (dx != 0) ? (dx / Math.abs(dx)) : 0; 
-            int stepY = (dy != 0) ? (dy / Math.abs(dy)) : 0; 
+
+            int stepX = (dx != 0) ? (dx / Math.abs(dx)) : 0;
+            int stepY = (dy != 0) ? (dy / Math.abs(dy)) : 0;
 
             int currentX = character.getX();
             int currentY = character.getY();
@@ -167,9 +174,10 @@ public class GameUI extends JFrame {
         } else {
             System.out.println("Invalid move! Remaining moves: " + remainingMoves);
         }
+        if(remainingMoves == 0 ){
+            isPlayerTurn = !isPlayerTurn;
+        }
     }
-
-    
 
     private int rollDice() {
         return dice.nextInt(6) + 1;
@@ -183,10 +191,18 @@ public class GameUI extends JFrame {
             remainingMoves = diceValue;
             diceResultLabel.setText("Dice Result: " + diceValue);
 
-            isPlayerTurn = !isPlayerTurn;
             boardPanel.repaint();
+
         }
 
+    }
+
+    private void updateTurnIndicator() {
+        if (isPlayerTurn) {
+            turnIndicatorLabel.setText("Player's Turn");
+        } else {
+            turnIndicatorLabel.setText("Enemy's Turn");
+        }
     }
 
     public static void main(String[] args) {
