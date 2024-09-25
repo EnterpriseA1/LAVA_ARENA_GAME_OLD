@@ -27,9 +27,25 @@ public class GameUI extends JFrame {
     private int diceValue;
     private int remainingMoves;
     private JLabel turnIndicatorLabel;
+    private JPanel mainMenuPanel; // แผงสำหรับหน้าเริ่มต้น
+    private JPanel gamePanel; // แผงสำหรับเกม
 
     public GameUI() {
+        setTitle("Turn-Based Battle Game");
+        setSize(1080, 800);
+        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
+        setLayout(new CardLayout());
 
+        mainMenuPanel = new MainMenu(this); // สร้าง MainMenu
+        createGamePanel();
+
+        add(mainMenuPanel, "MainMenu");
+        add(gamePanel, "GamePanel");
+
+        showMainMenu();
+    }
+
+    private void createGamePanel() {
         player = new Character(7, 7, 100);
         player.setDirection("UP");
         enemy = new Character(0, 0, 100);
@@ -37,16 +53,20 @@ public class GameUI extends JFrame {
         board = new Board(8, player, enemy);
         dice = new Random();
 
-        setTitle("Turn-Based Battle Game");
-        setSize(400, 400);
-        setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-        setLayout(new BorderLayout());
         turnIndicatorLabel = new JLabel("Player's Turn", SwingConstants.CENTER);
-        add(turnIndicatorLabel, BorderLayout.SOUTH);
+        turnIndicatorLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        turnIndicatorLabel.setForeground(Color.BLUE);
+
+        gamePanel = new JPanel(new BorderLayout());
+        gamePanel.setBackground(Color.LIGHT_GRAY);
+        gamePanel.add(turnIndicatorLabel, BorderLayout.SOUTH);
+
         JButton rollButton = new JButton("Roll Dice");
         rollButton.addActionListener(new MoveAction());
+        styleButton(rollButton);
 
         diceResultLabel = new JLabel("Dice Result: ", SwingConstants.CENTER);
+        diceResultLabel.setFont(new Font("Arial", Font.PLAIN, 14));
 
         boardPanel = new JPanel() {
             @Override
@@ -55,16 +75,17 @@ public class GameUI extends JFrame {
                 drawBoard(g);
             }
         };
-        boardPanel.setPreferredSize(new Dimension(300, 300));
+        boardPanel.setPreferredSize(new Dimension(400, 400));
+        boardPanel.setBackground(Color.WHITE);
 
-        add(boardPanel, BorderLayout.CENTER);
-        add(diceResultLabel, BorderLayout.NORTH);
-        add(rollButton, BorderLayout.EAST);
+        gamePanel.add(boardPanel, BorderLayout.CENTER);
+        gamePanel.add(diceResultLabel, BorderLayout.NORTH);
+        gamePanel.add(rollButton, BorderLayout.EAST);
 
         boardPanel.addMouseListener(new MouseAdapter() {
             @Override
             public void mouseClicked(MouseEvent e) {
-                int tileSize = 30;
+                int tileSize = 80;
                 int x = e.getY() / tileSize;
                 int y = e.getX() / tileSize;
 
@@ -74,22 +95,28 @@ public class GameUI extends JFrame {
                     } else {
                         moveCharacter(enemy, x, y);
                     }
-                }
-                else{
-                    System.out.println("no move remain");
+                } else {
+                    System.out.println("No move remain");
                 }
                 if (remainingMoves == 0) {
-                    
                     updateTurnIndicator();
                 }
                 boardPanel.repaint();
             }
         });
-        
+    }
+
+    private void styleButton(JButton button) {
+        button.setFont(new Font("Arial", Font.PLAIN, 14));
+        button.setBackground(Color.BLUE);
+        button.setForeground(Color.WHITE);
+        button.setFocusPainted(false);
+        button.setBorderPainted(false);
+        button.setOpaque(true);
     }
 
     private void drawBoard(Graphics g) {
-        int tileSize = 30;
+        int tileSize = 80;
         for (int i = 0; i < board.getSize(); i++) {
             for (int j = 0; j < board.getSize(); j++) {
                 if (board.getTile(i, j).isLava()) {
@@ -101,13 +128,12 @@ public class GameUI extends JFrame {
                 g.setColor(Color.BLACK);
                 g.drawRect(j * tileSize, i * tileSize, tileSize, tileSize);
             }
-
         }
-        //player 
+        // Player
         g.setColor(Color.GREEN);
         g.fillOval(player.getY() * tileSize + 5, player.getX() * tileSize + 5, tileSize - 10, tileSize - 10);
         drawDirectionIndicator(g, player.getDirection(), player.getX(), player.getY(), tileSize);
-        //enemy
+        // Enemy
         g.setColor(Color.WHITE);
         g.fillOval(enemy.getY() * tileSize + 5, enemy.getX() * tileSize + 5, tileSize - 10, tileSize - 10);
         drawDirectionIndicator(g, enemy.getDirection(), enemy.getX(), enemy.getY(), tileSize);
@@ -120,22 +146,20 @@ public class GameUI extends JFrame {
 
         switch (direction) {
             case "UP":
-                g.drawLine(centerX, centerY, centerX, centerY - 10);
+                g.drawLine(centerX, centerY, centerX, centerY - tileSize / 3);
                 break;
             case "DOWN":
-                g.drawLine(centerX, centerY, centerX, centerY + 10);
+                g.drawLine(centerX, centerY, centerX, centerY + tileSize / 3);
                 break;
             case "LEFT":
-                g.drawLine(centerX, centerY, centerX - 10, centerY);
+                g.drawLine(centerX, centerY, centerX - tileSize / 3, centerY);
                 break;
             case "RIGHT":
-                g.drawLine(centerX, centerY, centerX + 10, centerY);
+                g.drawLine(centerX, centerY, centerX + tileSize / 3, centerY);
                 break;
         }
-
     }
 
-    /*this move still have problem*/
     private void moveCharacter(Character character, int newX, int newY) {
         int dx = newX - character.getX();
         int dy = newY - character.getY();
@@ -151,7 +175,6 @@ public class GameUI extends JFrame {
                 }
             }
         } else if (remainingMoves > 0 && Math.abs(dx) + Math.abs(dy) <= remainingMoves) {
-
             int stepX = (dx != 0) ? (dx / Math.abs(dx)) : 0;
             int stepY = (dy != 0) ? (dy / Math.abs(dy)) : 0;
 
@@ -174,8 +197,8 @@ public class GameUI extends JFrame {
         } else {
             System.out.println("Invalid move! Remaining moves: " + remainingMoves);
         }
-        if(remainingMoves == 0 ){
-            isPlayerTurn = !isPlayerTurn;
+        if (remainingMoves == 0) {
+            isPlayerTurn = !isPlayerTurn; // สลับการเป็นผู้เล่น
         }
     }
 
@@ -190,11 +213,8 @@ public class GameUI extends JFrame {
             diceValue = rollDice();
             remainingMoves = diceValue;
             diceResultLabel.setText("Dice Result: " + diceValue);
-
             boardPanel.repaint();
-
         }
-
     }
 
     private void updateTurnIndicator() {
@@ -205,8 +225,19 @@ public class GameUI extends JFrame {
         }
     }
 
+   public void showMainMenu() {
+        CardLayout cl = (CardLayout) (getContentPane().getLayout());
+        cl.show(getContentPane(), "MainMenu");
+    }
+
+    public void showGamePanel() {
+        CardLayout cl = (CardLayout) (getContentPane().getLayout());
+        cl.show(getContentPane(), "GamePanel");
+    }
+
     public static void main(String[] args) {
         GameUI gameUI = new GameUI();
         gameUI.setVisible(true);
     }
 }
+//next fix move line only
