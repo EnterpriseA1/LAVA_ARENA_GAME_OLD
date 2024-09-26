@@ -29,13 +29,17 @@ public class GameUI extends JFrame {
     private JLabel turnIndicatorLabel;
     private JPanel mainMenuPanel; // แผงสำหรับหน้าเริ่มต้น
     private JPanel gamePanel; // แผงสำหรับเกม
+    private CollisionManager collisionManager;
+
+    private HealthBar playerHealthBar;
+    private HealthBar enemyHealthBar;
 
     public GameUI() {
         setTitle("Turn-Based Battle Game");
-        setSize(1080, 800);
+        setSize(880,750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new CardLayout());
-
+        setResizable(false);
         mainMenuPanel = new MainMenu(this); // สร้าง MainMenu
         createGamePanel();
 
@@ -52,22 +56,43 @@ public class GameUI extends JFrame {
         enemy.setDirection("DOWN");
         board = new Board(8, player, enemy);
         dice = new Random();
+        
+        collisionManager = new CollisionManager(player, enemy);
 
         turnIndicatorLabel = new JLabel("Player's Turn", SwingConstants.CENTER);
-        turnIndicatorLabel.setFont(new Font("Arial", Font.BOLD, 16));
+        turnIndicatorLabel.setFont(new Font("Arial", Font.BOLD, 24));
         turnIndicatorLabel.setForeground(Color.BLUE);
 
         gamePanel = new JPanel(new BorderLayout());
-        gamePanel.setBackground(Color.LIGHT_GRAY);
-        gamePanel.add(turnIndicatorLabel, BorderLayout.SOUTH);
-
+        gamePanel.setBackground(new Color(240, 240, 240)); // สีพื้นหลัง
+        gamePanel.add(turnIndicatorLabel, BorderLayout.NORTH);
+        
         JButton rollButton = new JButton("Roll Dice");
         rollButton.addActionListener(new MoveAction());
         styleButton(rollButton);
 
         diceResultLabel = new JLabel("Dice Result: ", SwingConstants.CENTER);
-        diceResultLabel.setFont(new Font("Arial", Font.PLAIN, 14));
+        diceResultLabel.setFont(new Font("Arial", Font.PLAIN, 18));
+        diceResultLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0)); // Padding
+        diceResultLabel.setBackground(Color.GRAY); // ตั้งค่าสีพื้นหลังเป็นสีน้ำเงิน
+        diceResultLabel.setOpaque(true);
+        
+        // สร้าง HealthBar สำหรับผู้เล่นและศัตรู
+        playerHealthBar = new HealthBar("Player HP");
+        enemyHealthBar = new HealthBar("Enemy HP");
 
+        JPanel healthPanel = new JPanel(new GridLayout(1,2)); // จัดให้แสดงผลในแนวตั้ง
+        healthPanel.add(playerHealthBar);
+        healthPanel.add(enemyHealthBar);
+        
+        // เพิ่ม healthPanel ที่ด้านขวาของ gamePanel
+        gamePanel.add(healthPanel, BorderLayout.EAST);
+        
+        //debug healthbar
+        player.takeDamage(50);
+        updateHealthBars();
+        //debug healthbar
+        
         boardPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -75,12 +100,18 @@ public class GameUI extends JFrame {
                 drawBoard(g);
             }
         };
+
         boardPanel.setPreferredSize(new Dimension(400, 400));
         boardPanel.setBackground(Color.WHITE);
+        boardPanel.setBorder(BorderFactory.createLineBorder(Color.BLACK, 5)); // Border
 
-        gamePanel.add(boardPanel, BorderLayout.CENTER);
-        gamePanel.add(diceResultLabel, BorderLayout.NORTH);
-        gamePanel.add(rollButton, BorderLayout.EAST);
+        gamePanel.add(boardPanel, BorderLayout.CENTER); // เพิ่ม boardPanel ที่กลาง
+        gamePanel.add(diceResultLabel, BorderLayout.WEST); // ย้าย diceResultLabel ไปที่ด้านซ้าย
+        gamePanel.add(rollButton, BorderLayout.SOUTH); // เพิ่ม rollButton ที่ด้านล่าง
+        gamePanel.add(healthPanel, BorderLayout.EAST);
+
+        // เพิ่มให้ปุ่มมีระยะห่าง
+        rollButton.setBorder(BorderFactory.createEmptyBorder(10, 10, 10, 10)); // Padding
 
         boardPanel.addMouseListener(new MouseAdapter() {
             @Override
@@ -106,6 +137,20 @@ public class GameUI extends JFrame {
         });
     }
 
+    private void updateHealthBars() {
+    // เพิ่มข้อความดีบั๊กเพื่อดูค่าของพลังชีวิต
+    System.out.println("Player HP: " + player.getHp());
+    System.out.println("Enemy HP: " + enemy.getHp());
+    
+    // อัปเดตหลอดพลังชีวิตของผู้เล่นและศัตรู
+    playerHealthBar.setHealth(player.getHp());
+    enemyHealthBar.setHealth(enemy.getHp());
+    
+    // ตรวจสอบการเรียก repaint เพื่อให้ UI อัปเดตใหม่
+    playerHealthBar.repaint();
+    enemyHealthBar.repaint();
+}
+
     private void styleButton(JButton button) {
         button.setFont(new Font("Arial", Font.PLAIN, 14));
         button.setBackground(Color.BLUE);
@@ -113,6 +158,7 @@ public class GameUI extends JFrame {
         button.setFocusPainted(false);
         button.setBorderPainted(false);
         button.setOpaque(true);
+
     }
 
     private void drawBoard(Graphics g) {
@@ -161,6 +207,12 @@ public class GameUI extends JFrame {
     }
 
     private void moveCharacter(Character character, int newX, int newY) {
+
+        // ตรวจสอบการชนกันก่อนที่จะขยับตัวละคร
+        if (collisionManager.willCollide(character, newX, newY)) {
+            System.out.println("Cannot move! Another character is in the way.");
+            return; // หยุดไม่ให้ตัวละครขยับถ้ามีการเดินทับกัน
+        }
         int dx = newX - character.getX();
         int dy = newY - character.getY();
 
@@ -225,7 +277,7 @@ public class GameUI extends JFrame {
         }
     }
 
-   public void showMainMenu() {
+    public void showMainMenu() {
         CardLayout cl = (CardLayout) (getContentPane().getLayout());
         cl.show(getContentPane(), "MainMenu");
     }
@@ -238,6 +290,7 @@ public class GameUI extends JFrame {
     public static void main(String[] args) {
         GameUI gameUI = new GameUI();
         gameUI.setVisible(true);
+        
     }
 }
 //next fix move line only

@@ -11,7 +11,7 @@ package game_project;
 public class Character {
 
     private int x, y;
-    private int hp;
+    private int hp = 100;
     private String direction;
 
     public Character(int x, int y, int hp) {
