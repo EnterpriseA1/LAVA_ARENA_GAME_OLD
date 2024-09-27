@@ -11,3 +11,4 @@ MOVE need more fix //เดินข้ามกันยังได้อย�
 End game screen
 song 
 smooth move 
+add turn timer
