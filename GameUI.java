@@ -30,13 +30,15 @@ public class GameUI extends JFrame {
     private JPanel mainMenuPanel; // แผงสำหรับหน้าเริ่มต้น
     private JPanel gamePanel; // แผงสำหรับเกม
     private CollisionManager collisionManager;
-
+    private boolean canRollDice = true;
     private HealthBar playerHealthBar;
     private HealthBar enemyHealthBar;
+    private AttackAction attackAction;
+    private boolean hasAttacked = false;
 
     public GameUI() {
         setTitle("Turn-Based Battle Game");
-        setSize(880,750);
+        setSize(890, 750);
         setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         setLayout(new CardLayout());
         setResizable(false);
@@ -56,7 +58,7 @@ public class GameUI extends JFrame {
         enemy.setDirection("DOWN");
         board = new Board(8, player, enemy);
         dice = new Random();
-        
+
         collisionManager = new CollisionManager(player, enemy);
 
         turnIndicatorLabel = new JLabel("Player's Turn", SwingConstants.CENTER);
@@ -66,7 +68,7 @@ public class GameUI extends JFrame {
         gamePanel = new JPanel(new BorderLayout());
         gamePanel.setBackground(new Color(240, 240, 240)); // สีพื้นหลัง
         gamePanel.add(turnIndicatorLabel, BorderLayout.NORTH);
-        
+
         JButton rollButton = new JButton("Roll Dice");
         rollButton.addActionListener(new MoveAction());
         styleButton(rollButton);
@@ -76,23 +78,22 @@ public class GameUI extends JFrame {
         diceResultLabel.setBorder(BorderFactory.createEmptyBorder(10, 0, 10, 0)); // Padding
         diceResultLabel.setBackground(Color.GRAY); // ตั้งค่าสีพื้นหลังเป็นสีน้ำเงิน
         diceResultLabel.setOpaque(true);
-        
+
         // สร้าง HealthBar สำหรับผู้เล่นและศัตรู
         playerHealthBar = new HealthBar("Player HP");
         enemyHealthBar = new HealthBar("Enemy HP");
 
-        JPanel healthPanel = new JPanel(new GridLayout(1,2)); // จัดให้แสดงผลในแนวตั้ง
+        JPanel healthPanel = new JPanel(new GridLayout(1, 2)); // จัดให้แสดงผลในแนวตั้ง
         healthPanel.add(playerHealthBar);
         healthPanel.add(enemyHealthBar);
-        
+
         // เพิ่ม healthPanel ที่ด้านขวาของ gamePanel
         gamePanel.add(healthPanel, BorderLayout.EAST);
-        
+
         //debug healthbar
-        player.takeDamage(50);
-        updateHealthBars();
+        //player.takeDamage(50);
+        //updateHealthBars();
         //debug healthbar
-        
         boardPanel = new JPanel() {
             @Override
             protected void paintComponent(Graphics g) {
@@ -123,33 +124,55 @@ public class GameUI extends JFrame {
                 if (remainingMoves > 0) { // ตรวจสอบว่า remainingMoves มากกว่า 0 ก่อน
                     if (isPlayerTurn) {
                         moveCharacter(player, x, y);
+
+                        // เช็คว่าตำแหน่งที่คลิกคือศัตรูหรือไม่
+                        if (x == enemy.getX() && y == enemy.getY() && !hasAttacked) {
+                            // เปลี่ยนทิศทางของผู้เล่นไปยังศัตรู
+                            setDirectionToEnemy(player, enemy);
+
+                            attackAction = new AttackAction(player, enemy, board, boardPanel);
+                            attackAction.attackEnemy();
+                            updateHealthBars(); // อัปเดต HealthBar หลังจากโจมตี
+                            hasAttacked = true; // ตั้งค่า hasAttacked เป็น true หลังจากโจมตี
+                        }
                     } else {
                         moveCharacter(enemy, x, y);
+                        if (x == player.getX() && y == player.getY() && !hasAttacked) {
+                            // เปลี่ยนทิศทางของศัตรูไปยังผู้เล่น
+                            setDirectionToEnemy(enemy, player);
+
+                            attackAction = new AttackAction(enemy, player, board, boardPanel);
+                            attackAction.attackEnemy();
+                            updateHealthBars(); // อัปเดต HealthBar หลังจากโจมตี
+                            hasAttacked = true; // ตั้งค่า hasAttacked เป็น true หลังจากโจมตี
+                        }
                     }
                 } else {
                     System.out.println("No move remain");
                 }
+
                 if (remainingMoves == 0) {
                     updateTurnIndicator();
                 }
+
                 boardPanel.repaint();
             }
         });
     }
 
     private void updateHealthBars() {
-    // เพิ่มข้อความดีบั๊กเพื่อดูค่าของพลังชีวิต
-    System.out.println("Player HP: " + player.getHp());
-    System.out.println("Enemy HP: " + enemy.getHp());
-    
-    // อัปเดตหลอดพลังชีวิตของผู้เล่นและศัตรู
-    playerHealthBar.setHealth(player.getHp());
-    enemyHealthBar.setHealth(enemy.getHp());
-    
-    // ตรวจสอบการเรียก repaint เพื่อให้ UI อัปเดตใหม่
-    playerHealthBar.repaint();
-    enemyHealthBar.repaint();
-}
+        // เพิ่มข้อความดีบั๊กเพื่อดูค่าของพลังชีวิต
+        System.out.println("Player HP: " + player.getHp());
+        System.out.println("Enemy HP: " + enemy.getHp());
+
+        // อัปเดตหลอดพลังชีวิตของผู้เล่นและศัตรู
+        playerHealthBar.setHealth(player.getHp());
+        enemyHealthBar.setHealth(enemy.getHp());
+
+        // ตรวจสอบการเรียก repaint เพื่อให้ UI อัปเดตใหม่
+        playerHealthBar.repaint();
+        enemyHealthBar.repaint();
+    }
 
     private void styleButton(JButton button) {
         button.setFont(new Font("Arial", Font.PLAIN, 14));
@@ -207,50 +230,40 @@ public class GameUI extends JFrame {
     }
 
     private void moveCharacter(Character character, int newX, int newY) {
-
-        // ตรวจสอบการชนกันก่อนที่จะขยับตัวละคร
-        if (collisionManager.willCollide(character, newX, newY)) {
-            System.out.println("Cannot move! Another character is in the way.");
-            return; // หยุดไม่ให้ตัวละครขยับถ้ามีการเดินทับกัน
-        }
         int dx = newX - character.getX();
         int dy = newY - character.getY();
 
-        if (remainingMoves > 0 && ((Math.abs(dx) + Math.abs(dy)) == 1)) {
-            if (newX >= 0 && newX < board.getSize() && newY >= 0 && newY < board.getSize()) {
-                if (!board.getTile(newX, newY).isLava()) {
-                    character.setX(newX);
-                    character.setY(newY);
-                    remainingMoves--;
-                } else {
-                    System.out.println("Character cannot move into lava!");
-                }
-            }
-        } else if (remainingMoves > 0 && Math.abs(dx) + Math.abs(dy) <= remainingMoves) {
-            int stepX = (dx != 0) ? (dx / Math.abs(dx)) : 0;
-            int stepY = (dy != 0) ? (dy / Math.abs(dy)) : 0;
-
-            int currentX = character.getX();
-            int currentY = character.getY();
-
-            while (remainingMoves > 0 && (currentX != newX || currentY != newY)) {
-                if (!board.getTile(currentX + stepX, currentY + stepY).isLava()) {
-                    currentX += stepX;
-                    currentY += stepY;
-                    remainingMoves--;
-                } else {
-                    System.out.println("Cannot move into lava!");
-                    break;
-                }
+        // ตรวจสอบว่าเหลือการเดิน (remainingMoves) หรือไม่
+        if (remainingMoves > 0 && (Math.abs(dx) == 1 && dy == 0 || Math.abs(dy) == 1 && dx == 0)) {
+            // ตรวจสอบว่ามีการชนหรือไม่
+            if (collisionManager.willCollide(character, newX, newY)) {
+                System.out.println("Cannot move! Another character is blocking the way.");
+                return; // ออกจากฟังก์ชันหากเกิดการชน
             }
 
-            character.setX(currentX);
-            character.setY(currentY);
+            // อัปเดตทิศทางตามพิกัดที่เคลื่อนที่ไป
+            if (dx == 1) {
+                character.setDirection("DOWN");
+            } else if (dx == -1) {
+                character.setDirection("UP");
+            } else if (dy == 1) {
+                character.setDirection("RIGHT");
+            } else if (dy == -1) {
+                character.setDirection("LEFT");
+            }
+
+            // อัปเดตตำแหน่งของตัวละคร (ทีละ 1 ช่อง)
+            character.setX(newX);
+            character.setY(newY);
+            remainingMoves--;
+
+            boardPanel.repaint(); // วาดกระดานใหม่เมื่อเคลื่อนที่เสร็จ
         } else {
-            System.out.println("Invalid move! Remaining moves: " + remainingMoves);
+            System.out.println("Invalid move or no moves left! Remaining moves: " + remainingMoves);
         }
+
         if (remainingMoves == 0) {
-            isPlayerTurn = !isPlayerTurn; // สลับการเป็นผู้เล่น
+            isPlayerTurn = !isPlayerTurn; // สลับผู้เล่น
         }
     }
 
@@ -262,19 +275,27 @@ public class GameUI extends JFrame {
 
         @Override
         public void actionPerformed(ActionEvent e) {
-            diceValue = rollDice();
-            remainingMoves = diceValue;
-            diceResultLabel.setText("Dice Result: " + diceValue);
-            boardPanel.repaint();
+            if (canRollDice) { // ตรวจสอบว่าสามารถทอยเต๋าได้หรือไม่
+                diceValue = rollDice();
+                remainingMoves = diceValue;
+                diceResultLabel.setText("Dice Result: " + diceValue);
+                canRollDice = false; // ตั้งค่าให้ทอยเต๋าไม่ได้อีกในเทิร์นนี้
+                boardPanel.repaint();
+            } else {
+                System.out.println("You can only roll the dice once per turn!");
+            }
         }
     }
 
     private void updateTurnIndicator() {
         if (isPlayerTurn) {
             turnIndicatorLabel.setText("Player's Turn");
+            hasAttacked = false; // รีเซ็ต hasAttacked เมื่อเปลี่ยนเป็นเทิร์นของผู้เล่น
         } else {
             turnIndicatorLabel.setText("Enemy's Turn");
+            hasAttacked = false;
         }
+        canRollDice = true; // เมื่อเปลี่ยนเทิร์น ให้สามารถทอยเต๋าได้อีกครั้ง
     }
 
     public void showMainMenu() {
@@ -287,10 +308,32 @@ public class GameUI extends JFrame {
         cl.show(getContentPane(), "GamePanel");
     }
 
+    //set direction to enemy before attack
+    private void setDirectionToEnemy(Character attacker, Character target) {
+        int dx = target.getX() - attacker.getX();
+        int dy = target.getY() - attacker.getY();
+
+        if (Math.abs(dx) > Math.abs(dy)) {
+            // ถ้าความแตกต่างในแนวนอนมากกว่าในแนวตั้ง
+            if (dx > 0) {
+                attacker.setDirection("DOWN");
+            } else {
+                attacker.setDirection("UP");
+            }
+        } else {
+            // ถ้าความแตกต่างในแนวตั้งมากกว่าในแนวนอน
+            if (dy > 0) {
+                attacker.setDirection("RIGHT");
+            } else {
+                attacker.setDirection("LEFT");
+            }
+        }
+    }
+
     public static void main(String[] args) {
         GameUI gameUI = new GameUI();
         gameUI.setVisible(true);
-        
+
     }
 }
 //next fix move line only

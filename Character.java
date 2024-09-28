@@ -45,6 +45,10 @@ public class Character {
         this.y = y;
     }
 
+    public void setHp(int hp) {
+        this.hp = hp;
+    }
+
     public void setDirection(String direction) {
         this.direction = direction;
     }
