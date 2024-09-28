@@ -2,13 +2,18 @@
 
 50%
 
-Remaining to do list 
-Graphics 
-Attack logic
-knockback logic
-instant death in lava
-MOVE need more fix //เดินข้ามกันยังได้อยู่ ต้องแก้
-End game screen
-song 
-smooth move 
-add turn timer
+Remaining to do list /n
+
+Graphics //
+Attack logic //ทำแล้ว
+knockback logic //ทำแล้ว
+instant death in lava //ทำแล้ว
+MOVE need more fix //แก้แล้ว
+End game screen //
+song //
+smooth move //
+add turn timer //cancle
+
+/*
+ถ้าทำทัน ทำ power up 
+*/
