@@ -1,6 +1,6 @@
 # LAVA_ARENA_GAME
 
-50%
+80%
 
 Remaining to do list /n
 
