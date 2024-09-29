@@ -14,7 +14,7 @@ song //
 smooth move //
 add turn timer //cancle
 //new bug spot character can walk in lava
-
+//ทำ ขอบรอบตัวละครเมื่อถึงเทิน
 /*
 ถ้าทำทัน ทำ power up 
 */
