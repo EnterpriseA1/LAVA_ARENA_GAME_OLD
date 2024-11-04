@@ -12,9 +12,9 @@ MOVE need more fix //แก้แล้ว
 End game screen //
 song //
 smooth move //
-add turn timer //cancle
-//new bug spot character can walk in lava
-//ทำ ขอบรอบตัวละครเมื่อถึงเทิน
+random spawn buff//
+ทำ ขอบรอบตัวละครเมื่อถึงเทิน //done
+select map //
 /*
 ถ้าทำทัน ทำ power up 
 */
